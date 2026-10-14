@@ -67,7 +67,7 @@ class ProductManager extends Component
             'sort_order' => 'integer|min:0',
             'selectedModifierGroups' => 'array',
             'selectedModifierGroups.*' => 'exists:modifier_groups,id',
-            'image' => 'nullable|image|max:2048',
+            'image' => 'nullable|file|mimes:jpeg,png,jpg,gif,svg,webp,avif|max:2048',
         ];
     }
 

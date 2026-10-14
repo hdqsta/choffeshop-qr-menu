@@ -31,6 +31,18 @@ $logout = function (Logout $logout) {
                         {{ __('Dashboard') }}
                     </x-nav-link>
 
+                    @if (auth()->user()?->isAdmin() || auth()->user()?->role === \App\Enums\UserRole::Cashier)
+                        <x-nav-link :href="route('staff.cashier')" :active="request()->routeIs('staff.cashier*')" wire:navigate>
+                            {{ __('Kasir') }}
+                        </x-nav-link>
+                    @endif
+
+                    @if (auth()->user()?->isAdmin() || auth()->user()?->role === \App\Enums\UserRole::Bar)
+                        <x-nav-link :href="route('staff.bar')" :active="request()->routeIs('staff.bar*')" wire:navigate>
+                            {{ __('Bar Station') }}
+                        </x-nav-link>
+                    @endif
+
                     @if (auth()->user()?->isAdmin())
                         <x-nav-link :href="route('staff.products')" :active="request()->routeIs('staff.products')" wire:navigate>
                             {{ __('Menu Produk') }}
@@ -98,6 +110,18 @@ $logout = function (Logout $logout) {
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')" wire:navigate>
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
+
+            @if (auth()->user()?->isAdmin() || auth()->user()?->role === \App\Enums\UserRole::Cashier)
+                <x-responsive-nav-link :href="route('staff.cashier')" :active="request()->routeIs('staff.cashier*')" wire:navigate>
+                    {{ __('Kasir') }}
+                </x-responsive-nav-link>
+            @endif
+
+            @if (auth()->user()?->isAdmin() || auth()->user()?->role === \App\Enums\UserRole::Bar)
+                <x-responsive-nav-link :href="route('staff.bar')" :active="request()->routeIs('staff.bar*')" wire:navigate>
+                    {{ __('Bar Station') }}
+                </x-responsive-nav-link>
+            @endif
 
             @if (auth()->user()?->isAdmin())
                 <x-responsive-nav-link :href="route('staff.products')" :active="request()->routeIs('staff.products')" wire:navigate>

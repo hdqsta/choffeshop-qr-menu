@@ -256,7 +256,30 @@
                                         @if ($image)
                                             <div class="mt-2 flex items-center gap-2">
                                                 <span class="text-xs text-gray-500">Preview baru:</span>
-                                                <img src="{{ $image->temporaryUrl() }}" class="h-16 w-16 object-cover rounded-xl border">
+                                                @php
+                                                    $canPreview = false;
+                                                    $previewUrl = null;
+                                                    try {
+                                                        if (is_object($image) && method_exists($image, 'isPreviewable') && $image->isPreviewable()) {
+                                                            $previewUrl = $image->temporaryUrl();
+                                                            $canPreview = true;
+                                                        }
+                                                    } catch (\Throwable $e) {
+                                                        $canPreview = false;
+                                                    }
+                                                @endphp
+
+                                                @if ($canPreview && $previewUrl)
+                                                    <img src="{{ $previewUrl }}" class="h-16 w-16 object-cover rounded-xl border">
+                                                @else
+                                                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                        Foto siap diunggah: {{ method_exists($image, 'getClientOriginalName') ? $image->getClientOriginalName() : 'File Terpilih' }}
+                                                    </span>
+                                                @endif
+                                                <button type="button" wire:click="$set('image', null)" class="text-xs text-rose-500 hover:text-rose-700 underline ms-2">Hapus</button>
                                             </div>
                                         @elseif ($existingImage)
                                             <div class="mt-2 flex items-center gap-2">
