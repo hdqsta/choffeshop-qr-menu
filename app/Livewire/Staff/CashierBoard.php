@@ -4,6 +4,7 @@ namespace App\Livewire\Staff;
 
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
+use App\Enums\UserRole;
 use App\Models\Order;
 use App\Services\Order\OrderStateMachine;
 use Illuminate\Contracts\View\View;
@@ -19,6 +20,12 @@ class CashierBoard extends Component
     public string $tab = 'active';
 
     public string $search = '';
+
+    public function mount(): void
+    {
+        // Livewire actions bypass the route middleware, so authorise here too.
+        abort_unless(auth()->user()?->hasRole(UserRole::Admin, UserRole::Cashier), 403, 'Hanya kasir dan admin yang dapat membuka papan kasir.');
+    }
 
     /**
      * Polling hook to refresh orders view in real-time.

@@ -53,6 +53,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Human readable role label, safe for accounts without an assigned role.
+     */
+    public function roleLabel(): string
+    {
+        return $this->role?->label() ?? 'Tanpa Peran';
+    }
+
+    /**
      * Check if user matches any of given roles.
      */
     public function hasRole(UserRole|string ...$roles): bool

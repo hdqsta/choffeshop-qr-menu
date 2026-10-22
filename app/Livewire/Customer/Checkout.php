@@ -45,7 +45,7 @@ class Checkout extends Component
                 $this->gateway
             );
 
-            $this->redirect(route('customer.order.status', ['public_token' => $order->public_token]), navigate: true);
+            $this->redirect(route('customer.order.status', ['publicToken' => $order->public_token]), navigate: true);
         } catch (DomainException $e) {
             $this->addError('order', $e->getMessage());
         }

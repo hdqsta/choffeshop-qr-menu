@@ -12,7 +12,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <h3 class="text-lg font-semibold text-gray-900">Selamat Datang, {{ auth()->user()->name }}!</h3>
-                            <p class="text-sm text-gray-600 mt-1">Anda login sebagai: <span class="font-semibold text-indigo-600">{{ auth()->user()->role->label() }}</span></p>
+                            <p class="text-sm text-gray-600 mt-1">Anda login sebagai: <span class="font-semibold text-indigo-600">{{ auth()->user()->roleLabel() }}</span></p>
                         </div>
                         <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             Status Akun: Aktif

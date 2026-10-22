@@ -4,6 +4,7 @@ namespace App\Livewire\Staff;
 
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
+use App\Enums\UserRole;
 use App\Models\Order;
 use App\Services\Order\OrderStateMachine;
 use Illuminate\Contracts\View\View;
@@ -16,11 +17,55 @@ class BarBoard extends Component
     public string $filter = 'active'; // 'active', 'confirmed', 'preparing', 'ready', 'done'
 
     /**
-     * Polling hook to refresh bar queue every few seconds.
+     * Statuses whose tickets still belong on the bar, and therefore still need a
+     * printed receipt.
+     *
+     * @var list<OrderStatus>
+     */
+    private const PRINTABLE_STATUSES = [OrderStatus::Confirmed, OrderStatus::Preparing, OrderStatus::Ready];
+
+    public function mount(): void
+    {
+        // Livewire actions bypass the route middleware, so authorise here too.
+        abort_unless(auth()->user()?->hasRole(UserRole::Admin, UserRole::Bar), 403, 'Hanya barista dan admin yang dapat membuka papan bar.');
+
+        $this->dispatchPendingReceipts();
+    }
+
+    /**
+     * Polling hook to refresh bar queue every few seconds and to hand freshly
+     * paid tickets to the browser so the receipt prints automatically.
      */
     public function pollBarQueue(): void
     {
-        // Polling hook
+        $this->dispatchPendingReceipts();
+    }
+
+    /**
+     * Paid tickets that have not been printed yet, ready for the auto-print hook.
+     *
+     * @return list<array{id: int, url: string, table: string}>
+     */
+    public function pendingReceipts(): array
+    {
+        return Order::with('table')
+            ->where('payment_status', PaymentStatus::Paid)
+            ->whereNull('receipt_printed_at')
+            ->whereIn('order_status', self::PRINTABLE_STATUSES)
+            ->oldest()
+            ->get()
+            ->map(fn (Order $order): array => [
+                'id' => $order->id,
+                'url' => route('staff.orders.receipt', $order),
+                'table' => (string) ($order->table->number ?? '-'),
+            ])
+            ->values()
+            ->all();
+    }
+
+    private function dispatchPendingReceipts(): void
+    {
+        $this->dispatch('bar-receipts-pending', receipts: $this->pendingReceipts());
     }
 
     public function setFilter(string $filter): void
@@ -100,6 +145,7 @@ class BarBoard extends Component
         return view('livewire.staff.bar-board', [
             'orders' => $orders,
             'counts' => $counts,
+            'pendingReceipts' => $this->pendingReceipts(),
         ]);
     }
 }

@@ -209,7 +209,7 @@
         <div>Silakan nikmati hidangan Anda ☕</div>
         <div style="margin-top: 4px;">Lacak status pesanan:</div>
         <div style="font-size: 8px; word-break: break-all;">
-            {{ route('customer.order.status', ['public_token' => $order->public_token]) }}
+            {{ route('customer.order.status', ['publicToken' => $order->public_token]) }}
         </div>
     </div>
 

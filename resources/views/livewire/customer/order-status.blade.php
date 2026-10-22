@@ -101,19 +101,45 @@
             @endif
 
             <!-- QR Code Card -->
+            @php
+                $payment = $order->latestPayment;
+                $qrisImage = $payment?->qr_url;
+                $isManualQris = $payment?->gateway === 'manual';
+            @endphp
+
             <div class="mt-4 p-4 bg-stone-50 rounded-2xl border-2 border-stone-200/80 w-full max-w-xs flex flex-col items-center">
                 <div class="flex items-center justify-between w-full mb-3 px-1">
                     <span class="text-xs font-black tracking-widest text-stone-800">QRIS</span>
                     <span class="text-[10px] text-stone-500 font-semibold">GPN • Standar Nasional</span>
                 </div>
 
-                @if ($order->latestPayment && $order->latestPayment->qr_url)
+                @if ($qrisImage)
                     <div class="bg-white p-3 rounded-xl shadow-xs border border-stone-200/60">
-                        <img src="{{ $order->latestPayment->qr_url }}" alt="QRIS Code" class="w-56 h-56 object-contain rounded-lg">
+                        <img src="{{ asset($qrisImage) }}" alt="QRIS {{ $isManualQris ? config('payment.manual.merchant_name') : $order->order_number }}" class="w-56 h-56 object-contain rounded-lg">
                     </div>
                 @else
-                    <div class="w-56 h-56 bg-stone-200 rounded-xl flex items-center justify-center text-stone-400 text-xs font-medium">
-                        QRIS Tidak Tersedia
+                    <div class="w-56 h-56 bg-stone-200 rounded-xl flex items-center justify-center text-stone-500 text-xs font-medium text-center px-4">
+                        @if ($isManualQris)
+                            QRIS statis merchant belum dikonfigurasi. Silakan bayar langsung di kasir.
+                        @else
+                            QRIS Tidak Tersedia
+                        @endif
+                    </div>
+                @endif
+
+                @if ($isManualQris)
+                    <div class="w-full mt-3 p-3 bg-white rounded-xl border border-stone-200/80 text-left">
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span class="text-stone-500">Merchant</span>
+                            <span class="font-bold text-stone-900">{{ config('payment.manual.merchant_name') }}</span>
+                        </div>
+                        <div class="flex items-center justify-between text-[11px] mt-1">
+                            <span class="text-stone-500">Nominal yang harus diisi</span>
+                            <span class="font-black text-amber-700 font-mono">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</span>
+                        </div>
+                        <p class="text-[10px] text-stone-500 mt-2 leading-snug">
+                            QRIS statis tidak memuat nominal, jadi masukkan jumlah tersebut secara manual di aplikasi pembayaran Anda, lalu tekan "Cek Status Pembayaran" setelah kasir memverifikasi.
+                        </p>
                     </div>
                 @endif
 
@@ -130,10 +156,12 @@
                     <span>Cek Status Pembayaran</span>
                 </button>
 
-                <!-- Demo Simulation Button for Testing/Development -->
-                <button type="button" wire:click="simulatePayment" wire:confirm="Simulasikan pembayaran sukses untuk pesanan ini?" class="w-full py-2 px-3 rounded-xl bg-amber-50 border border-amber-300/80 text-amber-900 font-bold text-[11px] hover:bg-amber-100 transition flex items-center justify-center gap-1.5 shadow-xs">
-                    <span>⚡ Simulasi Bayar Berhasil (Demo Testing)</span>
-                </button>
+                <!-- Demo Simulation Button for Testing/Development only -->
+                @if (app()->environment(['local', 'testing']))
+                    <button type="button" wire:click="simulatePayment" wire:confirm="Simulasikan pembayaran sukses untuk pesanan ini?" class="w-full py-2 px-3 rounded-xl bg-amber-50 border border-amber-300/80 text-amber-900 font-bold text-[11px] hover:bg-amber-100 transition flex items-center justify-center gap-1.5 shadow-xs">
+                        <span>⚡ Simulasi Bayar Berhasil (Demo Testing)</span>
+                    </button>
+                @endif
             </div>
         </div>
     @endif

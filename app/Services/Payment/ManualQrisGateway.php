@@ -9,44 +9,53 @@ use Illuminate\Http\Request;
 
 class ManualQrisGateway implements PaymentGateway
 {
+    /**
+     * Manual mode shows the merchant's static QRIS image. Because a static QRIS
+     * carries no nominal, the customer screen also shows the exact amount to key
+     * into their banking app, and the cashier confirms settlement afterwards.
+     */
     public function createPayment(Order $order): PaymentIntent
     {
         $providerRef = 'MAN-'.$order->order_number.'-'.time();
         $expiresAt = $order->expires_at ?? now()->addMinutes(config('payment.expiry_minutes', 15));
-
-        // Use static merchant QRIS or generated QR placeholder with order info
-        $qrisData = url('/order/'.$order->public_token);
-        $qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=350x350&data='.urlencode($qrisData);
 
         return new PaymentIntent(
             gateway: 'manual',
             amount: $order->total_amount,
             status: PaymentStatus::Pending,
             providerRef: $providerRef,
-            qrString: $qrisData,
-            qrUrl: $qrUrl,
+            qrString: null,
+            qrUrl: (string) config('payment.manual.qris_image', ''),
             expiresAt: $expiresAt,
-            rawResponse: ['mode' => 'manual_cashier_confirmation']
+            rawResponse: [
+                'mode' => 'manual_cashier_confirmation',
+                'merchant_name' => config('payment.manual.merchant_name'),
+            ]
         );
     }
 
+    /**
+     * Manual QRIS has no provider and therefore no signed callback. The cashier
+     * confirms settlement from the cashier board, so any request claiming to be
+     * a manual webhook is untrusted by definition.
+     */
     public function parseWebhook(Request $request): PaymentNotification
     {
-        $ref = (string) $request->input('order_id', '');
-        $statusStr = (string) $request->input('status', 'paid');
-        $amount = (int) $request->input('amount', 0);
-
         return new PaymentNotification(
             gateway: 'manual',
-            providerRef: $ref,
-            amount: $amount,
-            status: $statusStr === 'paid' ? PaymentStatus::Paid : PaymentStatus::Failed,
-            dedupeKey: 'manual_'.$ref.'_'.$statusStr,
+            providerRef: (string) $request->input('order_id', ''),
+            amount: 0,
+            status: PaymentStatus::Pending,
+            dedupeKey: 'manual_rejected_'.$request->ip(),
             payload: $request->all(),
-            signatureValid: true
+            signatureValid: false
         );
     }
 
+    /**
+     * Internal status inquiry used by reconciliation. There is no remote provider
+     * to ask, so the locally recorded status is authoritative.
+     */
     public function fetchStatus(Payment $payment): PaymentNotification
     {
         return new PaymentNotification(

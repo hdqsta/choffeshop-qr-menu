@@ -57,6 +57,18 @@ class EnsureRoleMiddlewareTest extends TestCase
         $response->assertStatus(403);
     }
 
+    public function test_user_without_any_role_is_denied_with_403(): void
+    {
+        $roleless = User::factory()->create([
+            'role' => null,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($roleless)->get('/test/cashier-only');
+
+        $response->assertStatus(403);
+    }
+
     public function test_admin_is_allowed_to_access_any_role(): void
     {
         $admin = User::factory()->create([

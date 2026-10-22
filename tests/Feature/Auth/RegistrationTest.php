@@ -2,35 +2,39 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Livewire\Volt\Volt;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class RegistrationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_registration_screen_can_be_rendered(): void
+    public function test_public_registration_route_is_not_registered(): void
     {
-        $response = $this->get('/register');
-
-        $response
-            ->assertOk()
-            ->assertSeeVolt('pages.auth.register');
+        $this->assertFalse(Route::has('register'));
     }
 
-    public function test_new_users_can_register(): void
+    public function test_registration_screen_is_not_reachable(): void
     {
-        $component = Volt::test('pages.auth.register')
-            ->set('name', 'Test User')
-            ->set('email', 'test@example.com')
-            ->set('password', 'password')
-            ->set('password_confirmation', 'password');
+        $this->get('/register')->assertNotFound();
 
-        $component->call('register');
+        $this->assertGuest();
+    }
 
-        $component->assertRedirect(route('dashboard', absolute: false));
+    public function test_visitors_cannot_create_an_account_through_the_register_endpoint(): void
+    {
+        $response = $this->post('/register', [
+            'name' => 'Intruder',
+            'email' => 'intruder@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
 
-        $this->assertAuthenticated();
+        $response->assertNotFound();
+
+        $this->assertDatabaseMissing('users', ['email' => 'intruder@example.com']);
+        $this->assertSame(0, User::count());
     }
 }

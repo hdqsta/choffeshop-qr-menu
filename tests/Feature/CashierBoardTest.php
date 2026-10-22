@@ -33,6 +33,15 @@ class CashierBoardTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_barista_cannot_invoke_cashier_board_actions_directly(): void
+    {
+        $barista = User::factory()->create(['role' => UserRole::Bar, 'is_active' => true]);
+
+        Livewire::actingAs($barista)
+            ->test(CashierBoard::class)
+            ->assertForbidden();
+    }
+
     public function test_cashier_can_manually_confirm_pending_payment(): void
     {
         $cashier = User::factory()->create(['role' => UserRole::Cashier, 'is_active' => true]);

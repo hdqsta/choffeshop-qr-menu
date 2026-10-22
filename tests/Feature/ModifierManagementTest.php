@@ -34,6 +34,15 @@ class ModifierManagementTest extends TestCase
         $response->assertStatus(403);
     }
 
+    public function test_bar_cannot_invoke_modifier_manager_actions_directly(): void
+    {
+        $bar = User::factory()->create(['role' => UserRole::Bar, 'is_active' => true]);
+
+        Livewire::actingAs($bar)
+            ->test(ModifierManager::class)
+            ->assertForbidden();
+    }
+
     public function test_admin_can_create_modifier_group_and_option(): void
     {
         $admin = User::factory()->create(['role' => UserRole::Admin, 'is_active' => true]);

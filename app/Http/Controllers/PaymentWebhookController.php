@@ -17,6 +17,14 @@ use InvalidArgumentException;
 class PaymentWebhookController extends Controller
 {
     /**
+     * Gateways that genuinely push signed callbacks. Manual QRIS is deliberately
+     * excluded: it settles through cashier confirmation, never through a webhook.
+     *
+     * @var list<string>
+     */
+    private const WEBHOOK_GATEWAYS = ['midtrans', 'xendit'];
+
+    /**
      * Handle incoming payment gateway webhooks with signature check and idempotency deduplication.
      */
     public function handle(
@@ -25,6 +33,14 @@ class PaymentWebhookController extends Controller
         PaymentManager $paymentManager,
         OrderStateMachine $stateMachine
     ): JsonResponse {
+        if (! in_array($gateway, self::WEBHOOK_GATEWAYS, true)) {
+            Log::warning("Rejected webhook for gateway without callback support [{$gateway}]", [
+                'ip' => $request->ip(),
+            ]);
+
+            return response()->json(['error' => 'Unsupported gateway'], 404);
+        }
+
         try {
             $driver = $paymentManager->gateway($gateway);
         } catch (InvalidArgumentException $e) {

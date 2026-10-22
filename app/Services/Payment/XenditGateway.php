@@ -70,7 +70,11 @@ class XenditGateway implements PaymentGateway
     public function parseWebhook(Request $request): PaymentNotification
     {
         $token = (string) $request->header('x-callback-token', '');
-        $signatureValid = ! empty($this->webhookToken) ? hash_equals($this->webhookToken, $token) : true;
+
+        // Fail closed: without a configured callback token there is no way to
+        // tell a genuine Xendit callback from a forged one, so reject them all.
+        $signatureValid = $this->webhookToken !== ''
+            && hash_equals($this->webhookToken, $token);
 
         $qrData = $request->input('qr_code', []);
         $referenceId = (string) ($qrData['reference_id'] ?? $request->input('external_id', ''));

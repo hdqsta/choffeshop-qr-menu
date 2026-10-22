@@ -41,6 +41,18 @@ class ProductManagementTest extends TestCase
         $response->assertStatus(403);
     }
 
+    public function test_cashier_cannot_invoke_product_manager_actions_directly(): void
+    {
+        $cashier = User::factory()->create([
+            'role' => UserRole::Cashier,
+            'is_active' => true,
+        ]);
+
+        Livewire::actingAs($cashier)
+            ->test(ProductManager::class)
+            ->assertForbidden();
+    }
+
     public function test_admin_can_toggle_product_availability(): void
     {
         $admin = User::factory()->create(['role' => UserRole::Admin, 'is_active' => true]);

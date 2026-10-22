@@ -171,6 +171,84 @@ class PaymentWebhookTest extends TestCase
         $this->assertTrue($order->needs_review); // Flagged for cashier review!
     }
 
+    public function test_midtrans_webhook_is_rejected_when_server_key_is_not_configured(): void
+    {
+        config(['payment.midtrans.server_key' => '']);
+
+        $table = Table::factory()->create();
+        $order = Order::factory()->create([
+            'order_number' => 'ORD-NOKEY-001',
+            'table_id' => $table->id,
+            'order_status' => OrderStatus::PendingPayment,
+            'payment_status' => PaymentStatus::Pending,
+        ]);
+
+        $payment = Payment::create([
+            'order_id' => $order->id,
+            'gateway' => 'midtrans',
+            'provider_ref' => 'TX-NOKEY-1',
+            'amount' => 20000,
+            'status' => PaymentStatus::Pending,
+        ]);
+
+        // A forger can only guess an empty server key, so this must not pass.
+        $forgedSignature = hash('sha512', 'ORD-NOKEY-001'.'200'.'20000.00'.'');
+
+        $response = $this->postJson(route('api.webhooks.payment', ['gateway' => 'midtrans']), [
+            'order_id' => 'ORD-NOKEY-001',
+            'status_code' => '200',
+            'gross_amount' => '20000.00',
+            'signature_key' => $forgedSignature,
+            'transaction_status' => 'settlement',
+            'transaction_id' => 'TX-NOKEY-1',
+        ]);
+
+        $response->assertStatus(401)->assertJson(['error' => 'Invalid signature']);
+
+        $payment->refresh();
+        $this->assertSame(PaymentStatus::Pending, $payment->status);
+
+        $order->refresh();
+        $this->assertSame(PaymentStatus::Pending, $order->payment_status);
+        $this->assertDatabaseCount('payment_events', 0);
+    }
+
+    public function test_xendit_webhook_is_rejected_when_callback_token_is_not_configured(): void
+    {
+        config(['payment.xendit.webhook_token' => '']);
+
+        $table = Table::factory()->create();
+        $order = Order::factory()->create([
+            'order_number' => 'ORD-XNOKEY-001',
+            'table_id' => $table->id,
+            'order_status' => OrderStatus::PendingPayment,
+            'payment_status' => PaymentStatus::Pending,
+        ]);
+
+        Payment::create([
+            'order_id' => $order->id,
+            'gateway' => 'xendit',
+            'provider_ref' => 'qr_xendit_nokey',
+            'amount' => 30000,
+            'status' => PaymentStatus::Pending,
+        ]);
+
+        $response = $this->postJson(route('api.webhooks.payment', ['gateway' => 'xendit']), [
+            'status' => 'COMPLETED',
+            'amount' => 30000,
+            'qr_code' => [
+                'id' => 'qr_xendit_nokey',
+                'reference_id' => 'ORD-XNOKEY-001',
+            ],
+        ]);
+
+        $response->assertStatus(401)->assertJson(['error' => 'Invalid signature']);
+
+        $order->refresh();
+        $this->assertSame(PaymentStatus::Pending, $order->payment_status);
+        $this->assertDatabaseCount('payment_events', 0);
+    }
+
     public function test_xendit_webhook_processes_paid_status(): void
     {
         config(['payment.xendit.webhook_token' => 'xendit-test-token-456']);

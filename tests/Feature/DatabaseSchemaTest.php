@@ -14,8 +14,10 @@ use App\Models\Payment;
 use App\Models\PaymentEvent;
 use App\Models\Product;
 use App\Models\Table;
+use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class DatabaseSchemaTest extends TestCase
@@ -43,6 +45,25 @@ class DatabaseSchemaTest extends TestCase
         $this->assertGreaterThan(0, Category::count());
         $this->assertGreaterThan(0, Product::count());
         $this->assertGreaterThan(0, ModifierGroup::count());
+    }
+
+    public function test_users_role_has_no_implicit_default_privilege(): void
+    {
+        $roleColumn = collect(Schema::getColumns('users'))->firstWhere('name', 'role');
+
+        $this->assertTrue($roleColumn['nullable']);
+        $this->assertNull($roleColumn['default']);
+
+        $user = User::create([
+            'name' => 'Tanpa Peran',
+            'email' => 'tanpaperan@coffeeshop.test',
+            'password' => 'password',
+        ]);
+
+        $this->assertNull($user->fresh()->role);
+        $this->assertSame('Tanpa Peran', $user->roleLabel());
+        $this->assertFalse($user->isAdmin());
+        $this->assertFalse($user->isCashier());
     }
 
     public function test_order_model_relationships_and_casts(): void

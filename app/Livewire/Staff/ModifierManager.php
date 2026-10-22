@@ -11,6 +11,12 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class ModifierManager extends Component
 {
+    public function mount(): void
+    {
+        // Livewire actions bypass the route middleware, so authorise here too.
+        abort_unless(auth()->user()?->isAdmin(), 403, 'Hanya admin yang dapat mengelola modifier.');
+    }
+
     // Group Modal state & fields
     public bool $showGroupModal = false;
 

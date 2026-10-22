@@ -105,9 +105,12 @@ class MidtransGateway implements PaymentGateway
         $fraudStatus = (string) $request->input('fraud_status', '');
         $transactionId = (string) $request->input('transaction_id', '');
 
-        // Signature validation: SHA512(order_id + status_code + gross_amount + ServerKey)
+        // Signature validation: SHA512(order_id + status_code + gross_amount + ServerKey).
+        // Fail closed: an unconfigured server key would otherwise let anyone forge
+        // a signature by hashing against an empty key.
         $expectedSignature = hash('sha512', $orderId.$statusCode.$grossAmount.$this->serverKey);
-        $signatureValid = hash_equals($expectedSignature, $signatureKey);
+        $signatureValid = $this->serverKey !== ''
+            && hash_equals($expectedSignature, $signatureKey);
 
         // Map status
         $status = match ($transactionStatus) {

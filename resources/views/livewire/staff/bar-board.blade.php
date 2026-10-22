@@ -1,4 +1,40 @@
-<div class="py-6" wire:poll.4s="pollBarQueue">
+<div class="py-6" wire:poll.4s="pollBarQueue"
+    x-data="{
+        initialReceipts: @js($pendingReceipts),
+        autoPrint: (localStorage.getItem('bar-autoprint') ?? '1') === '1',
+        toggleAutoPrint() {
+            this.autoPrint = ! this.autoPrint;
+            localStorage.setItem('bar-autoprint', this.autoPrint ? '1' : '0');
+        },
+        enqueueReceipts(receipts) {
+            if (! this.autoPrint || ! Array.isArray(receipts) || receipts.length === 0) {
+                return;
+            }
+
+            const printed = JSON.parse(localStorage.getItem('bar-printed-receipts') ?? '[]');
+
+            receipts.forEach((receipt) => {
+                if (printed.includes(receipt.id)) {
+                    return;
+                }
+
+                printed.push(receipt.id);
+
+                // Hidden iframe: the receipt view prints itself on load, so the
+                // ticket comes out at the bar without anyone touching the screen.
+                const frame = document.createElement('iframe');
+                frame.setAttribute('aria-hidden', 'true');
+                frame.style.cssText = 'position:fixed;left:-10000px;top:0;width:1px;height:1px;border:0;';
+                frame.src = receipt.url;
+                document.body.appendChild(frame);
+                setTimeout(() => frame.remove(), 30000);
+            });
+
+            localStorage.setItem('bar-printed-receipts', JSON.stringify(printed.slice(-200)));
+        }
+    }"
+    x-init="enqueueReceipts(initialReceipts)"
+    x-on:bar-receipts-pending.window="enqueueReceipts($event.detail.receipts)">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
         <!-- Top Header & Live Pulse -->
@@ -14,7 +50,15 @@
                 <p class="text-xs text-gray-500 mt-1">Antrean pesanan khusus barista. Urutan pengerjaan FIFO (pesanan paling awal di depan).</p>
             </div>
 
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+                <button
+                    type="button"
+                    @click="toggleAutoPrint()"
+                    :class="autoPrint ? 'bg-emerald-600 border-emerald-600 text-white hover:bg-emerald-700' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'"
+                    class="px-4 py-2 border font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5">
+                    <span x-text="autoPrint ? '🖨️ Cetak Otomatis: AKTIF' : '🖨️ Cetak Otomatis: NONAKTIF'">🖨️ Cetak Otomatis: AKTIF</span>
+                </button>
+
                 <a href="{{ route('staff.cashier') }}" wire:navigate class="px-4 py-2 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5">
                     <span>💵 Buka Meja Kasir</span>
                 </a>
@@ -156,7 +200,18 @@
                     </div>
 
                     <!-- Action Button Area -->
-                    <div class="p-4 pt-3 border-t border-gray-100 bg-gray-50/70">
+                    <div class="p-4 pt-3 border-t border-gray-100 bg-gray-50/70 space-y-2">
+                        <a
+                            href="{{ route('staff.orders.receipt', $order) }}"
+                            target="_blank"
+                            rel="noopener"
+                            class="w-full py-2 px-3 border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs">
+                            <span>🖨️ Cetak Struk</span>
+                            @if ($order->receipt_printed_at)
+                                <span class="text-[9px] text-emerald-600 font-black">✓ Terkirim ke bar</span>
+                            @endif
+                        </a>
+
                         @if ($order->order_status === \App\Enums\OrderStatus::Confirmed)
                             <button
                                 type="button"

@@ -55,6 +55,10 @@ $logout = function (Logout $logout) {
                         <x-nav-link :href="route('staff.tables')" :active="request()->routeIs('staff.tables')" wire:navigate>
                             {{ __('Meja & QR') }}
                         </x-nav-link>
+
+                        <x-nav-link :href="route('staff.users')" :active="request()->routeIs('staff.users')" wire:navigate>
+                            {{ __('Akun Staf') }}
+                        </x-nav-link>
                     @endif
                 </div>
             </div>
@@ -66,7 +70,7 @@ $logout = function (Logout $logout) {
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
                             <div class="flex flex-col text-right me-2">
                                 <span class="font-semibold text-gray-900 text-xs">{{ auth()->user()->name }}</span>
-                                <span class="text-[10px] text-amber-600 font-bold uppercase tracking-wider">{{ auth()->user()->role->label() }}</span>
+                                <span class="text-[10px] text-amber-600 font-bold uppercase tracking-wider">{{ auth()->user()->roleLabel() }}</span>
                             </div>
 
                             <div class="ms-1">
@@ -135,6 +139,10 @@ $logout = function (Logout $logout) {
                 <x-responsive-nav-link :href="route('staff.tables')" :active="request()->routeIs('staff.tables')" wire:navigate>
                     {{ __('Meja & QR') }}
                 </x-responsive-nav-link>
+
+                <x-responsive-nav-link :href="route('staff.users')" :active="request()->routeIs('staff.users')" wire:navigate>
+                    {{ __('Akun Staf') }}
+                </x-responsive-nav-link>
             @endif
         </div>
 
@@ -142,7 +150,7 @@ $logout = function (Logout $logout) {
         <div class="pt-4 pb-1 border-t border-gray-200">
             <div class="px-4">
                 <div class="font-medium text-base text-gray-800">{{ auth()->user()->name }}</div>
-                <div class="font-medium text-xs text-amber-600 uppercase font-semibold">{{ auth()->user()->role->label() }}</div>
+                <div class="font-medium text-xs text-amber-600 uppercase font-semibold">{{ auth()->user()->roleLabel() }}</div>
                 <div class="text-xs text-gray-500">{{ auth()->user()->email }}</div>
             </div>
 

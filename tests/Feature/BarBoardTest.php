@@ -104,4 +104,86 @@ class BarBoardTest extends TestCase
         $order->refresh();
         $this->assertSame(OrderStatus::Completed, $order->order_status);
     }
+
+    public function test_cashier_cannot_invoke_bar_board_actions_directly(): void
+    {
+        $cashier = User::factory()->create(['role' => UserRole::Cashier, 'is_active' => true]);
+
+        Livewire::actingAs($cashier)
+            ->test(BarBoard::class)
+            ->assertForbidden();
+    }
+
+    public function test_barista_can_print_a_receipt_from_the_bar_board(): void
+    {
+        $barista = User::factory()->create(['role' => UserRole::Bar, 'is_active' => true]);
+        $table = Table::factory()->create(['number' => '21']);
+        $order = Order::factory()->paid()->create(['table_id' => $table->id]);
+
+        $this->actingAs($barista)
+            ->get(route('staff.orders.receipt', $order))
+            ->assertOk()
+            ->assertSee($order->order_number);
+
+        $this->assertNotNull($order->fresh()->receipt_printed_at);
+    }
+
+    public function test_waiter_cannot_print_a_receipt(): void
+    {
+        $waiter = User::factory()->create(['role' => UserRole::Waiter, 'is_active' => true]);
+        $order = Order::factory()->paid()->create();
+
+        $this->actingAs($waiter)
+            ->get(route('staff.orders.receipt', $order))
+            ->assertForbidden();
+    }
+
+    public function test_bar_board_lists_unprinted_paid_orders_for_automatic_printing(): void
+    {
+        $barista = User::factory()->create(['role' => UserRole::Bar, 'is_active' => true]);
+        $table = Table::factory()->create(['number' => '31']);
+
+        $pendingPrint = Order::factory()->paid()->create([
+            'table_id' => $table->id,
+            'receipt_printed_at' => null,
+        ]);
+
+        $alreadyPrinted = Order::factory()->paid()->create([
+            'table_id' => $table->id,
+            'receipt_printed_at' => now(),
+        ]);
+
+        $unpaid = Order::factory()->create([
+            'table_id' => $table->id,
+            'order_status' => OrderStatus::PendingPayment,
+            'payment_status' => PaymentStatus::Pending,
+        ]);
+
+        $this->actingAs($barista);
+
+        $receipts = Livewire::test(BarBoard::class)
+            ->call('pollBarQueue')
+            ->assertDispatched('bar-receipts-pending')
+            ->instance()
+            ->pendingReceipts();
+
+        $this->assertSame([$pendingPrint->id], array_column($receipts, 'id'));
+        $this->assertSame(route('staff.orders.receipt', $pendingPrint), $receipts[0]['url']);
+        $this->assertSame('31', $receipts[0]['table']);
+
+        $this->assertNotContains($alreadyPrinted->id, array_column($receipts, 'id'));
+        $this->assertNotContains($unpaid->id, array_column($receipts, 'id'));
+    }
+
+    public function test_bar_board_renders_a_print_trigger_for_each_paid_ticket(): void
+    {
+        $barista = User::factory()->create(['role' => UserRole::Bar, 'is_active' => true]);
+        $order = Order::factory()->paid()->create();
+
+        $this->actingAs($barista);
+
+        Livewire::test(BarBoard::class)
+            ->assertSee(route('staff.orders.receipt', $order))
+            ->assertSee('Cetak Struk');
+    }
 }

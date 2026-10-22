@@ -11,6 +11,12 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class TableManager extends Component
 {
+    public function mount(): void
+    {
+        // Livewire actions bypass the route middleware, so authorise here too.
+        abort_unless(auth()->user()?->isAdmin(), 403, 'Hanya admin yang dapat mengelola meja.');
+    }
+
     public bool $showTableModal = false;
 
     public ?int $editingTableId = null;

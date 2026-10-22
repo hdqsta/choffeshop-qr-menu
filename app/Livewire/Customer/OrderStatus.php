@@ -33,10 +33,13 @@ class OrderStatus extends Component
     }
 
     /**
-     * Helper simulation method for local / demo / manual gateway testing.
+     * Demo-only helper that self-confirms a pending order. Disabled outside local
+     * and testing environments so a guest can never mark their own order as paid.
      */
     public function simulatePayment(OrderStateMachine $stateMachine): void
     {
+        abort_unless(app()->environment(['local', 'testing']), 404);
+
         $order = $this->getOrder();
 
         if ($order->payment_status === PaymentStatusEnum::Pending) {

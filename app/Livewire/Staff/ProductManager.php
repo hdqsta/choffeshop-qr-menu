@@ -56,6 +56,12 @@ class ProductManager extends Component
 
     public bool $categoryIsActive = true;
 
+    public function mount(): void
+    {
+        // Livewire actions bypass the route middleware, so authorise here too.
+        abort_unless(auth()->user()?->isAdmin(), 403, 'Hanya admin yang dapat mengelola menu.');
+    }
+
     protected function rules(): array
     {
         return [
