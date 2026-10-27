@@ -1,9 +1,9 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "hdqsta/coffeeshop-qr-menu",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "Coffee shop QR table ordering with Dynamic QRIS payments (Midtrans, Xendit, manual), cashier and bar boards, and thermal receipts.",
+    "keywords": ["laravel", "livewire", "qris", "payment-gateway", "midtrans", "xendit", "coffee-shop", "pos"],
     "license": "MIT",
     "require": {
         "php": "^8.3",
